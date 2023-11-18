@@ -83,7 +83,6 @@ export class appFrwkNode {
 
 
     render(target: HTMLElement) {
-        computeDimensions(this)
         this.updateDimensionsBlindly()
         let element = document.createElement("div")
         for (let i of this.children) {
@@ -218,7 +217,7 @@ function computeDimensions(rootNode: appFrwkNode) {
 
     let heightOfStandardSharedHeight = (rootNode.height - totalHeightNotSharersLength) / totalHeightSharersLength
     for (let i of heightSharers) {
-        console.log(i, heightOfStandardSharedHeight)
+        // console.trace(i)
         i.height = i.heightExpression(i).lengthOfShared*heightOfStandardSharedHeight
     }
 
@@ -332,11 +331,15 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
 
     node.width = document.body.clientWidth
     node.height = document.body.clientHeight
+    console.log(node.height)
 
     addEventListener("resize", ()=>{
         node.width = document.body.clientWidth
         node.height = document.body.clientHeight
         node.updateDimensions()
     })
+    computeDimensions(node)
+    console.log(node.children[0].children[0])
+
     node.render(document.body)
 }

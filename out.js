@@ -57,7 +57,6 @@
       }
     }
     render(target) {
-      computeDimensions(this);
       this.updateDimensionsBlindly();
       let element = document.createElement("div");
       for (let i of this.children) {
@@ -176,7 +175,6 @@
     }
     let heightOfStandardSharedHeight = (rootNode.height - totalHeightNotSharersLength) / totalHeightSharersLength;
     for (let i of heightSharers) {
-      console.log(i, heightOfStandardSharedHeight);
       i.height = i.heightExpression(i).lengthOfShared * heightOfStandardSharedHeight;
     }
     for (let i of allDimensionSharers) {
@@ -272,11 +270,14 @@
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"]);
     node.width = document.body.clientWidth;
     node.height = document.body.clientHeight;
+    console.log(node.height);
     addEventListener("resize", () => {
       node.width = document.body.clientWidth;
       node.height = document.body.clientHeight;
       node.updateDimensions();
     });
+    computeDimensions(node);
+    console.log(node.children[0].children[0]);
     node.render(document.body);
   }
 
@@ -345,13 +346,18 @@
           const above = containerDiv.children[indexOfSelf - 1];
           const below = containerDiv.children[indexOfSelf + 1];
           const targetHeight = above.height + below.height;
-          const newHeightOfAbove = e.clientY - pressedOffsetY;
+          var totalHeightOfAllPartsAbove = 0;
+          for (let i = 0; i < indexOfSelf - 1; i++) {
+            totalHeightOfAllPartsAbove += containerDiv.children[i].height;
+          }
+          const newHeightOfAbove = e.clientY - pressedOffsetY - totalHeightOfAllPartsAbove;
           const newHeightOfBelow = targetHeight - newHeightOfAbove + r.height;
           const aboveToBelowHeightRatio = newHeightOfAbove / newHeightOfBelow;
           const currentShareOfAboveAndBelow = above.heightExpression(above).lengthOfShared + below.heightExpression(below).lengthOfShared;
-          const newAboveSharedRatio = currentShareOfAboveAndBelow / 2 * aboveToBelowHeightRatio;
-          console.log(newAboveSharedRatio);
-          above.setHeight(px(newHeightOfAbove));
+          var newBelowSharedRatio = currentShareOfAboveAndBelow / (aboveToBelowHeightRatio + 1);
+          var newAboveSharedRatio = currentShareOfAboveAndBelow - newBelowSharedRatio;
+          above.setHeight(shared(newAboveSharedRatio));
+          below.setHeight(shared(newBelowSharedRatio));
           containerDiv.updateDimensions();
         }
       });
@@ -380,6 +386,12 @@
   }
   var app = new appFrwkNode([
     verticalResizer([
+      new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
+        let d = self.children[0];
+        d.content = "wow well done";
+        console.log(d);
+        d.rerender();
+      }).setHeight(shared(1)),
       new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
         let d = self.children[0];
         d.content = "wow well done";

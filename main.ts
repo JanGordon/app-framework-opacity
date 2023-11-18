@@ -69,16 +69,20 @@ function verticalResizer(children: appFrwkNode[]) {
                 const above = containerDiv.children[indexOfSelf-1]!
                 const below = containerDiv.children[indexOfSelf+1]!
                 const targetHeight = above.height + below.height
-                const newHeightOfAbove = (e as MouseEvent).clientY - pressedOffsetY
+                var totalHeightOfAllPartsAbove= 0 
+                for (let i = 0; i < indexOfSelf-1; i++) {
+                    totalHeightOfAllPartsAbove+=containerDiv.children[i].height
+                }
+                const newHeightOfAbove = (e as MouseEvent).clientY - pressedOffsetY - (totalHeightOfAllPartsAbove)
                 const newHeightOfBelow = targetHeight - newHeightOfAbove + r.height
                 const aboveToBelowHeightRatio = newHeightOfAbove / newHeightOfBelow
     
                 const currentShareOfAboveAndBelow = above.heightExpression(above).lengthOfShared + below.heightExpression(below).lengthOfShared
-                const newAboveSharedRatio = (currentShareOfAboveAndBelow / 2) * aboveToBelowHeightRatio
-                console.log(newAboveSharedRatio)
-                above.setHeight(px(newHeightOfAbove))
-                // above.setHeight(shared(newAboveSharedRatio))
-                // below.setHeight(shared(currentShareOfAboveAndBelow - newAboveSharedRatio))
+                var newBelowSharedRatio = currentShareOfAboveAndBelow / (aboveToBelowHeightRatio + 1)
+                var newAboveSharedRatio = currentShareOfAboveAndBelow - newBelowSharedRatio
+                // above.setHeight(px(newHeightOfAbove))
+                above.setHeight(shared(newAboveSharedRatio))
+                below.setHeight(shared(newBelowSharedRatio))
                 containerDiv.updateDimensions()
             }
         })
@@ -109,6 +113,12 @@ function verticalResizer(children: appFrwkNode[]) {
 
 let app = new appFrwkNode([
     verticalResizer([
+        new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click",(self)=>{
+            let d = (self.children[0] as appFrwkTextNode)
+            d.content = "wow well done"
+            console.log(d)
+            d.rerender()
+        }).setHeight(shared(1)),
         new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click",(self)=>{
             let d = (self.children[0] as appFrwkTextNode)
             d.content = "wow well done"
