@@ -1,4 +1,4 @@
-import { appFrwkNode, appFrwkTextNode, button, container, percentHeight, percentWidth, px, renderApp, shared } from "./lib";
+import { appFrwkNode, appFrwkTextNode, button, container, percentHeight, percentWidth, px, renderApp, shared } from "../lib";
 import { navbar } from "./nav";
 import { verticalResizer, horizontalResizer } from "./resizers";
 
