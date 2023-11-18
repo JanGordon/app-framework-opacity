@@ -1,5 +1,14 @@
 (() => {
   // lib.ts
+  var styleGroup = class {
+    constructor(styles) {
+      this.members = [];
+      this.styles = styles;
+    }
+    set(style) {
+      this.styles.push(style);
+    }
+  };
   function shared(multiplier) {
     return (self) => {
       return { length: 0, lengthOfShared: multiplier };
@@ -25,6 +34,7 @@
       this.onMountQueue = [];
       this.nodeType = 0 /* basic */;
       this.styles = [];
+      this.flag = /* @__PURE__ */ new Map([]);
       this.children = [];
       this.width = -1;
       this.height = -1;
@@ -32,6 +42,10 @@
       for (let i of children) {
         i.parent = this;
       }
+    }
+    setFlag(key, val) {
+      this.flag.set(key, val);
+      return this;
     }
     applyStyle(styles) {
       this.styles.push(styles);
@@ -103,8 +117,13 @@
       } else {
         this.onMountQueue.push(d);
       }
+      for (let i of this.children) {
+        i.updateDimensionsBlindly();
+      }
     }
-    setWidth(expression) {
+    setWidth(expression, test) {
+      if (test) {
+      }
       this.widthExpression = expression;
       return this;
     }
@@ -277,54 +296,71 @@
       node.updateDimensions();
     });
     computeDimensions(node);
-    console.log(node.children[0].children[0]);
     node.render(document.body);
   }
 
-  // main.ts
+  // nav.ts
+  function navbar() {
+    return new container([]).setHeight(px(20)).setWidth(percentWidth(1));
+  }
+
+  // resizers.ts
+  var resizerThickness = px(1);
+  var resizerHitBox = px(15);
+  var resizerStyles = new styleGroup([
+    "outline: none;",
+    "background-color: black;"
+  ]);
   function horizontalResizer(children) {
-    const containerDiv = new container([]).setHeight(percentHeight(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: row;"]);
+    const containerDiv = new container([]).setWidth(percentWidth(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: row;"]);
     let resizer = () => {
       var pressed = false;
       var pressedOffsetX = 0;
       document.addEventListener("pointerup", () => {
         pressed = false;
       });
-      let r = new button([]);
+      let r = new button([
+        new container([]).applyStyle(["position: absolute;", "z-index: 2;", "background-color: transparent;", "top: 0;", "left: 50%;", "transform: translateX(-50%);"]).setHeight(percentHeight(1)).setWidth(resizerHitBox).addEventListener("pointerdown", (self, e) => {
+          pressed = true;
+          const c = containerDiv.htmlNode.getBoundingClientRect();
+          const r2 = self.htmlNode.getBoundingClientRect();
+          pressedOffsetX = e.clientX - c.left - r2.left;
+        })
+      ]).applyStyle(["position: relative;", "overflow: visible;"]);
       document.addEventListener("pointermove", (e) => {
         if (pressed) {
           const indexOfSelf = containerDiv.children.indexOf(r);
-          const above = containerDiv.children[indexOfSelf - 1];
-          const below = containerDiv.children[indexOfSelf + 1];
-          const targetWidth = above.width + below.width;
-          const newHeightOfAbove = e.clientX - pressedOffsetX;
-          const newHeightOfBelow = targetWidth - newHeightOfAbove + r.width;
-          const aboveToBelowHeightRatio = newHeightOfAbove / newHeightOfBelow;
-          const currentShareOfAboveAndBelow = above.widthExpression(above).lengthOfShared + below.widthExpression(below).lengthOfShared;
-          const newAboveSharedRatio = currentShareOfAboveAndBelow / 2 * aboveToBelowHeightRatio;
-          console.log(newAboveSharedRatio);
-          above.setWidth(px(newHeightOfAbove));
+          const left = containerDiv.children[indexOfSelf - 1];
+          const right = containerDiv.children[indexOfSelf + 1];
+          const targetWidth = left.width + right.width;
+          var totalWidthOfAllPartsLeft = 0;
+          for (let i = 0; i < indexOfSelf - 1; i++) {
+            totalWidthOfAllPartsLeft += containerDiv.children[i].width;
+          }
+          const newWidthOfLeft = e.clientX - pressedOffsetX - totalWidthOfAllPartsLeft;
+          const newWidthOfRight = targetWidth - newWidthOfLeft + r.width;
+          const leftToRightWidthRatio = newWidthOfLeft / newWidthOfRight;
+          const currentShareOfLeftAndRight = left.widthExpression(left).lengthOfShared + right.widthExpression(right).lengthOfShared;
+          var newRightSharedRatio = currentShareOfLeftAndRight / (leftToRightWidthRatio + 1);
+          var newLeftSharedRatio = currentShareOfLeftAndRight - newRightSharedRatio;
+          console.log(newWidthOfLeft, newWidthOfRight);
+          left.setWidth(shared(newLeftSharedRatio));
+          right.setWidth(shared(newRightSharedRatio));
           containerDiv.updateDimensions();
         }
       });
-      return r.addEventListener("click", (self) => {
-        let d = self.children[0];
-        d.content = "wow well done";
-        console.log(d);
-        d.rerender();
-      }).setWidth(px(5)).setHeight(percentHeight(1)).addEventListener("pointerdown", (self, e) => {
-        pressed = true;
-        const c = containerDiv.htmlNode.getBoundingClientRect();
-        const r2 = self.htmlNode.getBoundingClientRect();
-        console.log(c, r2, e.clientX);
-        const xInResizer = e.clientX - r2.left;
-        pressedOffsetX = e.clientX - c.left - r2.left;
-      });
+      return r.addToStyleGroup(resizerStyles).setHeight(percentHeight(1)).setWidth(resizerThickness);
     };
     for (let index = 0; index < children.length; index++) {
-      children[index].setWidth(percentWidth(1));
+      children[index].setHeight(percentHeight(1));
+      let resizable = !children[index].flag.get("static");
       if (index + 1 < children.length) {
-        containerDiv.addChildren([children[index], resizer()]);
+        if (resizable) {
+          containerDiv.addChildren([children[index], resizer()]);
+        } else {
+          let dummyResizer = new button([]).addToStyleGroup(resizerStyles).setHeight(percentHeight(1)).setWidth(resizerThickness);
+          containerDiv.addChildren([children[index], dummyResizer]);
+        }
       } else {
         containerDiv.addChildren([children[index]]);
       }
@@ -339,7 +375,14 @@
       document.addEventListener("pointerup", () => {
         pressed = false;
       });
-      let r = new button([]);
+      let r = new button([
+        new container([]).applyStyle(["position: absolute;", "z-index: 2;", "background-color: transparent;", "top: 50%;", "left: 0;", "transform: translateY(-50%);"]).setWidth(percentWidth(1)).setHeight(resizerHitBox).addEventListener("pointerdown", (self, e) => {
+          pressed = true;
+          const c = containerDiv.htmlNode.getBoundingClientRect();
+          const r2 = self.htmlNode.getBoundingClientRect();
+          pressedOffsetY = e.clientY - c.top - r2.top;
+        })
+      ]).applyStyle(["position: relative;", "overflow: visible;"]);
       document.addEventListener("pointermove", (e) => {
         if (pressed) {
           const indexOfSelf = containerDiv.children.indexOf(r);
@@ -361,56 +404,41 @@
           containerDiv.updateDimensions();
         }
       });
-      return r.addEventListener("click", (self) => {
-        let d = self.children[0];
-        d.content = "wow well done";
-        console.log(d);
-        d.rerender();
-      }).setWidth(percentWidth(1)).setHeight(px(5)).addEventListener("pointerdown", (self, e) => {
-        pressed = true;
-        const c = containerDiv.htmlNode.getBoundingClientRect();
-        const r2 = self.htmlNode.getBoundingClientRect();
-        console.log(c, r2, e.clientY);
-        pressedOffsetY = e.clientY - c.top - r2.top;
-      });
+      return r.addToStyleGroup(resizerStyles).setWidth(percentWidth(1)).setHeight(resizerThickness);
     };
     for (let index = 0; index < children.length; index++) {
       children[index].setWidth(percentWidth(1));
+      let resizable = !children[index].flag.get("static");
       if (index + 1 < children.length) {
-        containerDiv.addChildren([children[index], resizer()]);
+        if (resizable) {
+          containerDiv.addChildren([children[index], resizer()]);
+        } else {
+          let dummyResizer = new button([]).addToStyleGroup(resizerStyles).setWidth(percentWidth(1)).setHeight(resizerThickness);
+          containerDiv.addChildren([children[index], dummyResizer]);
+        }
       } else {
         containerDiv.addChildren([children[index]]);
       }
     }
     return containerDiv;
   }
+
+  // main.ts
+  function demoButton() {
+    return new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
+      let d = self.children[0];
+      d.content = "wow well done";
+      d.rerender();
+    }).setHeight(shared(1)).applyStyle(["outline: none;"]);
+  }
   var app = new appFrwkNode([
     verticalResizer([
-      new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
-        let d = self.children[0];
-        d.content = "wow well done";
-        console.log(d);
-        d.rerender();
-      }).setHeight(shared(1)),
-      new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
-        let d = self.children[0];
-        d.content = "wow well done";
-        console.log(d);
-        d.rerender();
-      }).setHeight(shared(1)),
+      navbar().setFlag("static", true),
+      demoButton().setHeight(shared(1)),
+      demoButton().setHeight(shared(1)),
       horizontalResizer([
-        new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
-          let d = self.children[0];
-          d.content = "wow well done";
-          console.log(d);
-          d.rerender();
-        }).setHeight(shared(1)),
-        new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
-          let d = self.children[0];
-          d.content = "wow well done";
-          console.log(d);
-          d.rerender();
-        }).setHeight(shared(1))
+        demoButton().setWidth(shared(1)),
+        demoButton().setWidth(shared(1))
       ]).setHeight(shared(1))
     ])
   ]);

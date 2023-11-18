@@ -49,6 +49,11 @@ export class appFrwkNode {
     onMountQueue: (()=>void)[] = []
     nodeType = nodeType.basic
     styles: string[][] = []
+    flag = new Map<string, any>([])
+    setFlag(key: string, val: any) {
+        this.flag.set(key, val)
+        return this
+    }
     applyStyle(styles: string[]) {
         this.styles.push(styles)
         return this
@@ -130,13 +135,18 @@ export class appFrwkNode {
         } else {
             this.onMountQueue.push(d)
         }
+        for (let i of this.children) {
+            i.updateDimensionsBlindly()
+        }
         
     }
     widthExpression: (self: appFrwkNode)=>lengthConfig
     heightExpression: (self: appFrwkNode)=>lengthConfig
     width: number = -1 // width in px
     height: number = -1 // width in px
-    setWidth(expression: (self: appFrwkNode)=>lengthConfig) {
+    setWidth(expression: (self: appFrwkNode)=>lengthConfig, test?:boolean) {
+        if (test) {
+        }
         this.widthExpression = expression
         return this
     }
@@ -179,7 +189,6 @@ function computeDimensions(rootNode: appFrwkNode) {
                 let width = i.widthExpression(i)
                 if (width.lengthOfShared == 0) {
                     // just use normal px length
-                    
                     i.width = width.length
                     totalWidthNotSharersLength+=width.length
                 } else {
@@ -209,7 +218,7 @@ function computeDimensions(rootNode: appFrwkNode) {
         }
         
     }
-
+    // console.log(totalWidthNotSharersLength, totalWidthSharersLength)
     let widthOfStandardSharedWidth = (rootNode.width - totalWidthNotSharersLength) / totalWidthSharersLength
     for (let i of widthSharers) {
         i.width = i.widthExpression(i).lengthOfShared*widthOfStandardSharedWidth
@@ -339,7 +348,6 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
         node.updateDimensions()
     })
     computeDimensions(node)
-    console.log(node.children[0].children[0])
 
     node.render(document.body)
 }
