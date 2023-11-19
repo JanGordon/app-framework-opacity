@@ -1,12 +1,15 @@
-import { appFrwkNode, button, container, percentHeight, percentWidth, px, shared, styleGroup } from "../lib"
+import { container, button } from "../elements"
+import { appFrwkNode, percentHeight, percentWidth, px, shared, styleGroup } from "../lib"
 
 
 const resizerThickness = px(1)
 const resizerHitBox = px(15)
 const resizerStyles = new styleGroup([
-    "outline: none;",
-    "background-color: black;"
-])
+    [".resizer-styles", `
+        outline: none;
+        background-color: black;
+    `]
+], "resizer-styles")
 
 export function horizontalResizer(children: appFrwkNode[]) {
     const containerDiv = new container([]).setWidth(percentWidth(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: row;"])

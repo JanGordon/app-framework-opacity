@@ -1,5 +1,4 @@
-
-
+import { v4 as uuidv4 } from 'uuid';
 
 type frwkNode = appFrwkNode | appFrwkTextNode
 
@@ -16,12 +15,25 @@ export type lengthConfig = {
 
 export class styleGroup {
     members: appFrwkNode[] = []
-    styles: string[]
-    constructor(styles: string[]) {
+    checksum = 0
+    private styles: ([string, string])[]
+    className = uuidv4()
+    constructor(styles: ([string, string])[], className?: string) {
         this.styles = styles
+        if (className) {
+            this.className = className
+        }
     }
-    set(style: string) {
+    set(style: [string, string]) {
         this.styles.push(style)
+        this.checksum++
+    }
+    getCss(): string {
+        var s = ""
+        for (let i of this.styles) {
+            s+=`${i[0]} {${i[1]}}`
+        }
+        return s
     }
 }
 
@@ -49,6 +61,7 @@ export class appFrwkNode {
     onMountQueue: (()=>void)[] = []
     nodeType = nodeType.basic
     styles: string[][] = []
+    styleGroups: styleGroup[] = []
     flag = new Map<string, any>([])
     setFlag(key: string, val: any) {
         this.flag.set(key, val)
@@ -59,7 +72,14 @@ export class appFrwkNode {
         return this
     }
     addToStyleGroup(group: styleGroup) {
-        this.styles.push(group.styles)
+        if (this.htmlNode) {
+            this.htmlNode.classList.add(group.className)
+        } else {
+            this.onMountQueue.push(()=>{
+                this.htmlNode.classList.add(group.className)
+            })
+        }
+        this.styleGroups.push(group)
         group.members.push(this)
         return this
     }
@@ -95,7 +115,7 @@ export class appFrwkNode {
         }
         this.htmlNode = element
         this.htmlNode.style.cssText = computeStyles(this.styles)
-
+        addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.onMountQueue) {
             i()
         }
@@ -106,6 +126,7 @@ export class appFrwkNode {
         computeDimensions(this)
         this.updateDimensionsBlindly()
         this.htmlNode.style.cssText = computeStyles(this.styles)
+        addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode) {
                 i.rerender()
@@ -159,7 +180,7 @@ export class appFrwkNode {
 }
 
 
-function computeStyles(styles: string[][]) {
+export function computeStyles(styles: string[][]) {
     let styleString = ""
     for (let i of styles) {
         for (let rule of i) {
@@ -169,7 +190,9 @@ function computeStyles(styles: string[][]) {
     return styleString
 }
 
-function computeDimensions(rootNode: appFrwkNode) {
+
+
+export function computeDimensions(rootNode: appFrwkNode) {
     // computes dimensions of all descendants of rootNode (not rootNode itself)
 
     let widthSharers :appFrwkNode[] = []
@@ -235,86 +258,6 @@ function computeDimensions(rootNode: appFrwkNode) {
     }
 }
 
-
-
-
-
-export class button extends appFrwkNode {
-    name = "button"
-    styles = [
-        ["color: red;", "padding: 0;", "border: none;", "outline: 1px solid black;"]
-    ]
-    render(target: HTMLElement): void {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        let element = document.createElement("button")
-        for (let i of this.children) {
-            i.render(element)
-        }
-        this.htmlNode = element
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-
-        for (let i of this.onMountQueue) {
-            i()
-        }
-        this.onMountQueue = []
-        target.appendChild(element)
-    }
-    rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-        for (let i of this.children) {
-            if (i.htmlNode) {
-                i.rerender()
-            } else {
-                i.render(this.htmlNode)
-            }
-        }
-    }
-}
-export class container extends appFrwkNode {
-    name = "button"
-    styles = [
-        // ["color: red;"]
-    ]
-    render(target: HTMLElement): void {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        let element = document.createElement("div")
-        for (let i of this.children) {
-            i.render(element)
-        }
-        this.htmlNode = element
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-
-        for (let i of this.onMountQueue) {
-            i()
-        }
-        this.onMountQueue = []
-        target.appendChild(element)
-    }
-    rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-        for (let i of this.children) {
-            if (i.htmlNode) {
-                i.rerender()
-            } else {
-                i.render(this.htmlNode)
-            }
-        }
-    }
-}
-
-export class textInput extends appFrwkNode {
-    name = "text-input"
-    styles = [
-        ["color: red;"]
-    ]
-}
-
 export class appFrwkTextNode extends appFrwkNode {
     constructor(content: string) {
         super([])
@@ -333,7 +276,29 @@ export class appFrwkTextNode extends appFrwkNode {
     content: string
 }
 
-
+var allStyleGroups: styleGroup[] = []
+export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
+    for (let s of styleGroups) {
+        var exists = false
+        for (let index = 0; index < allStyleGroups.length; index++) {
+            if (s == allStyleGroups[index]) {
+                if (s.checksum != allStyleGroups[index].checksum) {
+                    // style has been modified
+                    (document.head.querySelector(`#${s.className}`) as HTMLStyleElement).innerText = s.getCss()
+                    
+                }
+                exists = true
+            }
+        }
+        if (!exists) {
+            let styleElement = document.createElement("style")
+            styleElement.id = s.className
+            styleElement.innerText = s.getCss()
+            document.head.appendChild(styleElement)
+            allStyleGroups.push(s)
+        }
+    }
+}
 
 export function renderApp(node: appFrwkNode, target: HTMLElement) {
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
@@ -351,3 +316,4 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
 
     node.render(document.body)
 }
+

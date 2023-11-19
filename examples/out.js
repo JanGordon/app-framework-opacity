@@ -1,12 +1,73 @@
 (() => {
+  // node_modules/uuid/dist/esm-browser/rng.js
+  var getRandomValues;
+  var rnds8 = new Uint8Array(16);
+  function rng() {
+    if (!getRandomValues) {
+      getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+      if (!getRandomValues) {
+        throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+      }
+    }
+    return getRandomValues(rnds8);
+  }
+
+  // node_modules/uuid/dist/esm-browser/stringify.js
+  var byteToHex = [];
+  for (let i = 0; i < 256; ++i) {
+    byteToHex.push((i + 256).toString(16).slice(1));
+  }
+  function unsafeStringify(arr, offset = 0) {
+    return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+  }
+
+  // node_modules/uuid/dist/esm-browser/native.js
+  var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+  var native_default = {
+    randomUUID
+  };
+
+  // node_modules/uuid/dist/esm-browser/v4.js
+  function v4(options, buf, offset) {
+    if (native_default.randomUUID && !buf && !options) {
+      return native_default.randomUUID();
+    }
+    options = options || {};
+    const rnds = options.random || (options.rng || rng)();
+    rnds[6] = rnds[6] & 15 | 64;
+    rnds[8] = rnds[8] & 63 | 128;
+    if (buf) {
+      offset = offset || 0;
+      for (let i = 0; i < 16; ++i) {
+        buf[offset + i] = rnds[i];
+      }
+      return buf;
+    }
+    return unsafeStringify(rnds);
+  }
+  var v4_default = v4;
+
   // lib.ts
   var styleGroup = class {
-    constructor(styles) {
+    constructor(styles, className) {
       this.members = [];
+      this.checksum = 0;
+      this.className = v4_default();
       this.styles = styles;
+      if (className) {
+        this.className = className;
+      }
     }
     set(style) {
       this.styles.push(style);
+      this.checksum++;
+    }
+    getCss() {
+      var s = "";
+      for (let i of this.styles) {
+        s += `${i[0]} {${i[1]}}`;
+      }
+      return s;
     }
   };
   function shared(multiplier) {
@@ -34,6 +95,7 @@
       this.onMountQueue = [];
       this.nodeType = 0 /* basic */;
       this.styles = [];
+      this.styleGroups = [];
       this.flag = /* @__PURE__ */ new Map([]);
       this.children = [];
       this.width = -1;
@@ -52,7 +114,14 @@
       return this;
     }
     addToStyleGroup(group) {
-      this.styles.push(group.styles);
+      if (this.htmlNode) {
+        this.htmlNode.classList.add(group.className);
+      } else {
+        this.onMountQueue.push(() => {
+          this.htmlNode.classList.add(group.className);
+        });
+      }
+      this.styleGroups.push(group);
       group.members.push(this);
       return this;
     }
@@ -78,6 +147,7 @@
       }
       this.htmlNode = element;
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.onMountQueue) {
         i();
       }
@@ -88,6 +158,7 @@
       computeDimensions(this);
       this.updateDimensionsBlindly();
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.children) {
         if (i.htmlNode) {
           i.rerender();
@@ -200,6 +271,57 @@
       computeDimensions(i);
     }
   }
+  var appFrwkTextNode = class extends appFrwkNode {
+    constructor(content) {
+      super([]);
+      this.nodeType = 1 /* text */;
+      this.content = content;
+    }
+    render(target) {
+      let n = document.createTextNode(this.content);
+      this.textNode = n;
+      target.appendChild(n);
+    }
+    rerender() {
+      this.textNode.data = this.content;
+    }
+  };
+  var allStyleGroups = [];
+  function addStyleGroupStylesToDOM(styleGroups) {
+    for (let s of styleGroups) {
+      var exists = false;
+      for (let index = 0; index < allStyleGroups.length; index++) {
+        if (s == allStyleGroups[index]) {
+          if (s.checksum != allStyleGroups[index].checksum) {
+            document.head.querySelector(`#${s.className}`).innerText = s.getCss();
+          }
+          exists = true;
+        }
+      }
+      if (!exists) {
+        let styleElement = document.createElement("style");
+        styleElement.id = s.className;
+        styleElement.innerText = s.getCss();
+        document.head.appendChild(styleElement);
+        allStyleGroups.push(s);
+      }
+    }
+  }
+  function renderApp(node, target) {
+    node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"]);
+    node.width = document.body.clientWidth;
+    node.height = document.body.clientHeight;
+    console.log(node.height);
+    addEventListener("resize", () => {
+      node.width = document.body.clientWidth;
+      node.height = document.body.clientHeight;
+      node.updateDimensions();
+    });
+    computeDimensions(node);
+    node.render(document.body);
+  }
+
+  // elements.ts
   var button = class extends appFrwkNode {
     constructor() {
       super(...arguments);
@@ -217,6 +339,7 @@
       }
       this.htmlNode = element;
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.onMountQueue) {
         i();
       }
@@ -227,6 +350,7 @@
       computeDimensions(this);
       this.updateDimensionsBlindly();
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.children) {
         if (i.htmlNode) {
           i.rerender();
@@ -251,6 +375,7 @@
       }
       this.htmlNode = element;
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.onMountQueue) {
         i();
       }
@@ -261,6 +386,7 @@
       computeDimensions(this);
       this.updateDimensionsBlindly();
       this.htmlNode.style.cssText = computeStyles(this.styles);
+      addStyleGroupStylesToDOM(this.styleGroups);
       for (let i of this.children) {
         if (i.htmlNode) {
           i.rerender();
@@ -270,47 +396,21 @@
       }
     }
   };
-  var appFrwkTextNode = class extends appFrwkNode {
-    constructor(content) {
-      super([]);
-      this.nodeType = 1 /* text */;
-      this.content = content;
-    }
-    render(target) {
-      let n = document.createTextNode(this.content);
-      this.textNode = n;
-      target.appendChild(n);
-    }
-    rerender() {
-      this.textNode.data = this.content;
-    }
-  };
-  function renderApp(node, target) {
-    node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"]);
-    node.width = document.body.clientWidth;
-    node.height = document.body.clientHeight;
-    console.log(node.height);
-    addEventListener("resize", () => {
-      node.width = document.body.clientWidth;
-      node.height = document.body.clientHeight;
-      node.updateDimensions();
-    });
-    computeDimensions(node);
-    node.render(document.body);
-  }
 
-  // nav.ts
+  // examples/nav.ts
   function navbar() {
     return new container([]).setHeight(px(20)).setWidth(percentWidth(1));
   }
 
-  // resizers.ts
+  // examples/resizers.ts
   var resizerThickness = px(1);
   var resizerHitBox = px(15);
   var resizerStyles = new styleGroup([
-    "outline: none;",
-    "background-color: black;"
-  ]);
+    [".resizer-styles", `
+        outline: none;
+        background-color: black;
+    `]
+  ], "resizer-styles");
   function horizontalResizer(children) {
     const containerDiv = new container([]).setWidth(percentWidth(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: row;"]);
     let resizer = () => {
@@ -423,7 +523,7 @@
     return containerDiv;
   }
 
-  // main.ts
+  // examples/main.ts
   function demoButton() {
     return new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
       let d = self.children[0];
