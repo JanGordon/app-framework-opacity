@@ -300,20 +300,46 @@ export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
     }
 }
 
+const resizeElement = document.createElement("div")
+resizeElement.style.cssText = `
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: larger;
+    background-color: white;
+`
+resizeElement.innerText = "Resizing"
+document.body.appendChild(resizeElement)
 export function renderApp(node: appFrwkNode, target: HTMLElement) {
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
 
     node.width = document.body.clientWidth
     node.height = document.body.clientHeight
     console.log(node.height)
+    const onResize = ()=>{
 
-    addEventListener("resize", ()=>{
+        resizeElement.style.display = "none"
         node.width = document.body.clientWidth
         node.height = document.body.clientHeight
         node.updateDimensions()
+    }
+    var doit;
+
+    addEventListener("resize", ()=>{
+        resizeElement.style.display = "flex"
+        clearTimeout(doit);
+        doit = setTimeout(onResize, 100);
+        
+        
     })
     computeDimensions(node)
-
-    node.render(document.body)
+    target.style.overflow = "hidden"
+    node.render(target)
 }
 
