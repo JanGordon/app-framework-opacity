@@ -128,7 +128,7 @@ export class appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles)
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -284,7 +284,7 @@ export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
             if (s == allStyleGroups[index]) {
                 if (s.checksum != allStyleGroups[index].checksum) {
                     // style has been modified
-                    (document.head.querySelector(`#${s.className}`) as HTMLStyleElement).innerText = s.getCss()
+                    (document.head.querySelector(`#${s.className}`) as HTMLStyleElement).innerHTML = s.getCss()
                     
                 }
                 exists = true
@@ -293,7 +293,7 @@ export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
         if (!exists) {
             let styleElement = document.createElement("style")
             styleElement.id = s.className
-            styleElement.innerText = s.getCss()
+            styleElement.innerHTML = s.getCss()
             document.head.appendChild(styleElement)
             allStyleGroups.push(s)
         }

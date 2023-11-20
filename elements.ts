@@ -1,9 +1,9 @@
-import { addStyleGroupStylesToDOM, appFrwkNode, computeDimensions, computeStyles } from "./lib"
+import { addStyleGroupStylesToDOM, appFrwkNode, appFrwkTextNode, computeDimensions, computeStyles } from "./lib"
 
 export class button extends appFrwkNode {
     name = "button"
     styles = [
-        ["color: red;", "padding: 0;", "border: none;", "outline: 1px solid black;"]
+        
     ]
     render(target: HTMLElement): void {
         computeDimensions(this)
@@ -28,7 +28,7 @@ export class button extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles)
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -64,7 +64,7 @@ export class container extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles)
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -107,7 +107,7 @@ export class link extends appFrwkNode {
         addStyleGroupStylesToDOM(this.styleGroups);
         (this.htmlNode as HTMLAnchorElement).href = this.target
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -144,7 +144,7 @@ export class paragraph extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles);
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -180,7 +180,7 @@ export class header1 extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles);
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -216,7 +216,7 @@ export class header2 extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles);
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
@@ -253,7 +253,7 @@ export class textInput extends appFrwkNode {
         this.htmlNode.style.cssText = computeStyles(this.styles);
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
-            if (i.htmlNode) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
                 i.rerender()
             } else {
                 i.render(this.htmlNode)
