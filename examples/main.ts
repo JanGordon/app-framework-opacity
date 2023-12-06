@@ -15,7 +15,7 @@ function demoButton() {
             new button([new appFrwkTextNode("Hello Im a 2nd new child")])
         ])
         c.applyStyle(["color: red;"])
-        c.lightRerender()
+        c.applyLastChange()
     }).setHeight(shared(1)).applyStyle(["outline: none;"])
 }
 
