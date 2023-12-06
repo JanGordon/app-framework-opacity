@@ -6,7 +6,7 @@ export class button extends appFrwkNode {
         
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("button")
         for (let i of this.children) {
@@ -23,9 +23,9 @@ export class button extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
+        computeDimensions(this.parent!)
         this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly()
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -42,7 +42,7 @@ export class container extends appFrwkNode {
         // ["color: red;"]
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("div")
         for (let i of this.children) {
@@ -59,8 +59,51 @@ export class container extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
         this.updateDimensionsBlindly()
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.children) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
+                i.rerender()
+            } else {
+                i.render(this.htmlNode)
+            }
+        }
+    }
+}
+export class image extends appFrwkNode {
+    name = "img"
+    styles = [
+        
+    ]
+    src: string
+    setSrc(src: string) {
+        this.src = src
+        return this
+    }
+    render(target: HTMLElement): void {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly()
+        let element = document.createElement("img")
+        for (let i of this.children) {
+            i.render(element)
+        }
+        this.htmlNode = element;
+        (this.htmlNode as HTMLImageElement).src = this.src
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.onMountQueue) {
+            i()
+        }
+        this.onMountQueue = []
+        target.appendChild(element)
+    }
+    rerender() {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly();
+        (this.htmlNode as HTMLImageElement).src = this.src
         this.htmlNode.style.cssText = computeStyles(this.styles)
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
@@ -72,6 +115,123 @@ export class container extends appFrwkNode {
         }
     }
 }
+
+export class video extends appFrwkNode {
+    name = "video"
+    styles = [
+        
+    ]
+    src: string
+    setSrc(src: string) {
+        this.src = src
+        return this
+    }
+    controls: boolean
+    setControls(on: boolean) {
+        this.controls = on
+        return this
+    }
+    autoplay: boolean
+    setAutoplay(on: boolean) {
+        this.autoplay = on
+        return this
+    }
+    render(target: HTMLElement): void {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly()
+        let element = document.createElement("video")
+        element.controls = this.controls
+        element.autoplay = this.autoplay
+        for (let i of this.children) {
+            i.render(element)
+        }
+        this.htmlNode = element;
+        (this.htmlNode as HTMLVideoElement).src = this.src
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.onMountQueue) {
+            i()
+        }
+        this.onMountQueue = []
+        target.appendChild(element)
+    }
+    rerender() {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly();
+        (this.htmlNode as HTMLVideoElement).src = this.src;
+        (this.htmlNode as HTMLVideoElement).controls = this.controls;
+        (this.htmlNode as HTMLVideoElement).autoplay = this.autoplay
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.children) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
+                i.rerender()
+            } else {
+                i.render(this.htmlNode)
+            }
+        }
+    }
+}
+
+export class audio extends appFrwkNode {
+    name = "audio"
+    styles = [
+        
+    ]
+    src: string
+    setSrc(src: string) {
+        this.src = src
+        return this
+    }
+    controls: boolean
+    setControls(on: boolean) {
+        this.controls = on
+        return this
+    }
+    autoplay: boolean
+    setAutoplay(on: boolean) {
+        this.autoplay = on
+        return this
+    }
+    render(target: HTMLElement): void {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly()
+        let element = document.createElement("audio")
+        element.controls = this.controls
+        element.autoplay = this.autoplay
+        for (let i of this.children) {
+            i.render(element)
+        }
+        this.htmlNode = element;
+        (this.htmlNode as HTMLVideoElement).src = this.src
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.onMountQueue) {
+            i()
+        }
+        this.onMountQueue = []
+        target.appendChild(element)
+    }
+    rerender() {
+        computeDimensions(this.parent!)
+        this.updateDimensionsBlindly();
+        (this.htmlNode as HTMLVideoElement).src = this.src;
+        (this.htmlNode as HTMLVideoElement).controls = this.controls;
+        (this.htmlNode as HTMLVideoElement).autoplay = this.autoplay
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        addStyleGroupStylesToDOM(this.styleGroups)
+        for (let i of this.children) {
+            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
+                i.rerender()
+            } else {
+                i.render(this.htmlNode)
+            }
+        }
+    }
+}
+
 export class link extends appFrwkNode {
     name = "link"
     styles = [
@@ -83,7 +243,7 @@ export class link extends appFrwkNode {
         return this
     }
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("a") as HTMLAnchorElement
         element.href = this.target
@@ -101,9 +261,9 @@ export class link extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles);
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly();
         addStyleGroupStylesToDOM(this.styleGroups);
         (this.htmlNode as HTMLAnchorElement).href = this.target
         for (let i of this.children) {
@@ -122,7 +282,7 @@ export class paragraph extends appFrwkNode {
         // ["color: red;"]
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("p")
         for (let i of this.children) {
@@ -139,9 +299,9 @@ export class paragraph extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles);
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly();
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -159,7 +319,7 @@ export class header1 extends appFrwkNode {
         // ["color: red;"]
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("h1")
         for (let i of this.children) {
@@ -175,9 +335,9 @@ export class header1 extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles);
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly();
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -195,7 +355,7 @@ export class header2 extends appFrwkNode {
         // ["color: red;"]
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("h2")
         for (let i of this.children) {
@@ -211,9 +371,9 @@ export class header2 extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles);
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly();
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -231,7 +391,7 @@ export class textInput extends appFrwkNode {
         // ["color: red;"]
     ]
     render(target: HTMLElement): void {
-        computeDimensions(this)
+        computeDimensions(this.parent!)
         this.updateDimensionsBlindly()
         let element = document.createElement("input")
         element.type = "text"
@@ -248,9 +408,9 @@ export class textInput extends appFrwkNode {
         target.appendChild(element)
     }
     rerender() {
-        computeDimensions(this)
-        this.updateDimensionsBlindly()
-        this.htmlNode.style.cssText = computeStyles(this.styles);
+        computeDimensions(this.parent!)
+        this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly();
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {

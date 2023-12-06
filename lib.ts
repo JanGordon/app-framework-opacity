@@ -67,6 +67,42 @@ export class appFrwkNode {
         this.flag.set(key, val)
         return this
     }
+
+    addClass(className: string) {
+        if (this.htmlNode) {
+            this.htmlNode.classList.add(className)
+        } else {
+            this.onMountQueue.push(()=>{
+                console.log("hello im mounted", this.htmlNode)
+                this.htmlNode.classList.add(className)
+            })
+        }
+        return this
+    }
+    hasClass(className: string) {
+        if (this.htmlNode) {
+            return this.htmlNode.classList.contains(className)
+        }
+        return false
+    }
+    toggleClass(className: string) {
+        if (this.htmlNode) {
+            this.htmlNode.classList.toggle(className)
+        } else {
+            this.onMountQueue.push(()=>{
+                this.htmlNode.classList.toggle(className)
+            })
+        }
+    }
+    removeClass(className: string) {
+        if (this.htmlNode) {
+            this.htmlNode.classList.remove(className)
+        } else {
+            this.onMountQueue.push(()=>{
+                this.htmlNode.classList.remove(className)
+            })
+        }
+    }
     applyStyle(styles: string[]) {
         this.styles.push(styles)
         return this
@@ -93,7 +129,9 @@ export class appFrwkNode {
         if (this.htmlNode) {
             this.htmlNode.addEventListener(event, (e)=>callback(this, e))
         } else {
-            this.onMountQueue.push(()=>this.htmlNode.addEventListener(event, (e)=>callback(this, e)))
+            this.onMountQueue.push(()=>{
+                this.htmlNode.addEventListener(event, (e)=>callback(this, e))
+            })
         }
         return this
     }
@@ -104,6 +142,12 @@ export class appFrwkNode {
             this.children.push(i)
         }
     }
+
+    removeChild(child: frwkNode) {
+        this.children.splice(this.children.indexOf(child))
+        // It could be worth adding a rerender queue for optomisation
+    }
+
     parent: appFrwkNode | undefined
 
 
@@ -122,10 +166,19 @@ export class appFrwkNode {
         this.onMountQueue = []
         target.appendChild(element)
     }
+    renderNewChildren(children: frwkNode[]) {
+        this.addChildren(children)
+        computeDimensions(this)
+        if (this.htmlNode) {
+            for (let i of children) {
+                i.render(this.htmlNode)
+            }
+        }
+    }
     rerender() {
         computeDimensions(this)
-        this.updateDimensionsBlindly()
         this.htmlNode.style.cssText = computeStyles(this.styles)
+        this.updateDimensionsBlindly()
         addStyleGroupStylesToDOM(this.styleGroups)
         for (let i of this.children) {
             if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -139,7 +192,7 @@ export class appFrwkNode {
         computeDimensions(this)
         this.updateDimensionsBlindly()
         for (let i of this.children) {
-            i.updateDimensionsBlindly()
+            i.updateDimensions()
         }
     }
     updateDimensionsBlindly() {
@@ -149,15 +202,17 @@ export class appFrwkNode {
             }
             if (this.height > 0) {
                 this.htmlNode.style.height = this.height + "px"
+                console.log("heihgt", this.htmlNode)
             }
         }
         if (this.htmlNode) {
             d()
+            console.log("updating style dimensions", this.height)
         } else {
             this.onMountQueue.push(d)
         }
         for (let i of this.children) {
-            i.updateDimensionsBlindly()
+            i.updateDimensions()
         }
         
     }
