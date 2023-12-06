@@ -61,6 +61,12 @@ export function rerenderBasics(node: appFrwkNode) {
     computeDimensions(node)
     node.htmlNode.style.cssText = computeStyles(node.styles)
     node.updateDimensionsBlindly()
+    node.htmlNode.className = node.classes.join(" ")
+    
+    for (let i of node.styleGroups) {
+        console.log("adding class", i.className)
+        node.htmlNode.classList.add(i.className)
+    }
     addStyleGroupStylesToDOM(node.styleGroups)
     for (let i of node.children) {
         if (i.htmlNode || (i as appFrwkTextNode).textNode) {
@@ -78,9 +84,14 @@ export function renderBasics(node: appFrwkNode, element: HTMLElement) {
     }
     node.htmlNode = element
     node.htmlNode.style.cssText = computeStyles(node.styles)
+    
+    node.htmlNode.className = node.classes.join(" ")
+    
     for (let i of node.styleGroups) {
+        console.log("adding class", i.className)
         node.htmlNode.classList.add(i.className)
     }
+    
     addStyleGroupStylesToDOM(node.styleGroups)
     for (let i of node.onMountQueue) {
         i()
@@ -95,7 +106,7 @@ export class appFrwkNode {
     styles: string[][] = []
     styleGroups: styleGroup[] = []
     flag = new Map<string, any>([])
-
+    classes: string[] = []
     changes: (()=>void)[] = []
     setFlag(key: string, val: any) {
         this.flag.set(key, val)
@@ -107,6 +118,11 @@ export class appFrwkNode {
         this.changes.push(()=>{
             this.htmlNode.classList.add(className)
         })
+        let index = this.classes.indexOf(className)
+        if (index == -1) {
+            //no exist
+            this.classes.push(className)
+        }
         
         return this
     }
@@ -120,11 +136,24 @@ export class appFrwkNode {
         this.changes.push(()=>{
             this.htmlNode.classList.toggle(className)
         })
+        let index = this.classes.indexOf(className)
+        if (index == -1) {
+            //no exist
+            this.classes.push(className)
+        } else {
+            this.classes.splice(index)
+        }
+        return this
     }
     removeClass(className: string) {
         this.changes.push(()=>{
             this.htmlNode.classList.remove(className)
         })
+        let index = this.classes.indexOf(className)
+        if (index != -1) {
+            this.classes.splice(index)
+        }
+        return this
     }
     applyStyle(styles: string[]) {
         this.styles.push(styles)
