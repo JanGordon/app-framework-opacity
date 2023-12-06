@@ -1,9 +1,14 @@
 import { button, container } from "../elements";
-import { appFrwkNode, appFrwkTextNode, percentHeight, percentWidth, px, renderApp, shared } from "../lib";
+import { appFrwkNode, appFrwkTextNode, percentHeight, percentWidth, px, renderApp, shared, styleGroup } from "../lib";
 import { navbar } from "./nav";
 import { verticalResizer, horizontalResizer } from "./resizers";
 
 const c = new container([])
+var styl = new styleGroup([
+    [".f", `
+        background-color: pink;
+    `]
+], "f")
 
 function demoButton() {
     return new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click",(self)=>{
@@ -15,8 +20,8 @@ function demoButton() {
             new button([new appFrwkTextNode("Hello Im a 2nd new child")])
         ])
         c.applyStyle(["color: red;"])
-        c.applyLastChange()
-    }).setHeight(shared(1)).applyStyle(["outline: none;"])
+        c.lightRerender()
+    }).setHeight(shared(1)).applyStyle(["outline: none;"]).addToStyleGroup(styl)
 }
 
 

@@ -90,6 +90,36 @@
       return { length: self.parent.height * percent, lengthOfShared: 0 };
     };
   }
+  function rerenderBasics(node) {
+    node.changes = [];
+    computeDimensions(node);
+    node.htmlNode.style.cssText = computeStyles(node.styles);
+    node.updateDimensionsBlindly();
+    addStyleGroupStylesToDOM(node.styleGroups);
+    for (let i of node.children) {
+      if (i.htmlNode || i.textNode) {
+        i.rerender();
+      } else {
+        i.render(node.htmlNode);
+      }
+    }
+  }
+  function renderBasics(node, element) {
+    node.updateDimensionsBlindly();
+    for (let i of node.children) {
+      i.render(element);
+    }
+    node.htmlNode = element;
+    node.htmlNode.style.cssText = computeStyles(node.styles);
+    for (let i of node.styleGroups) {
+      node.htmlNode.classList.add(i.className);
+    }
+    addStyleGroupStylesToDOM(node.styleGroups);
+    for (let i of node.onMountQueue) {
+      i();
+    }
+    node.onMountQueue = [];
+  }
   var appFrwkNode = class {
     constructor(children) {
       this.onMountQueue = [];
@@ -142,6 +172,7 @@
     addToStyleGroup(group) {
       this.changes.push(() => {
         this.htmlNode.classList.add(group.className);
+        addStyleGroupStylesToDOM([group]);
       });
       this.styleGroups.push(group);
       group.members.push(this);
@@ -173,18 +204,8 @@
       });
     }
     render(target) {
-      this.updateDimensionsBlindly();
       let element = document.createElement("div");
-      for (let i of this.children) {
-        i.render(element);
-      }
-      this.htmlNode = element;
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.onMountQueue) {
-        i();
-      }
-      this.onMountQueue = [];
+      renderBasics(this, element);
       target.appendChild(element);
     }
     renderNewChildren(children) {
@@ -197,17 +218,7 @@
       }
     }
     rerender() {
-      computeDimensions(this);
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      this.updateDimensionsBlindly();
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.children) {
-        if (i.htmlNode || i.textNode) {
-          i.rerender();
-        } else {
-          i.render(this.htmlNode);
-        }
-      }
+      rerenderBasics(this);
     }
     updateDimensions() {
       computeDimensions(this);
@@ -412,69 +423,20 @@
       this.styles = [];
     }
     render(target) {
-      computeDimensions(this.parent);
-      this.updateDimensionsBlindly();
       let element = document.createElement("button");
-      for (let i of this.children) {
-        i.render(element);
-      }
-      this.htmlNode = element;
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.onMountQueue) {
-        i();
-      }
-      this.onMountQueue = [];
+      renderBasics(this, element);
       target.appendChild(element);
-    }
-    rerender() {
-      computeDimensions(this.parent);
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      this.updateDimensionsBlindly();
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.children) {
-        if (i.htmlNode || i.textNode) {
-          i.rerender();
-        } else {
-          i.render(this.htmlNode);
-        }
-      }
     }
   };
   var container = class extends appFrwkNode {
     constructor() {
       super(...arguments);
-      this.name = "button";
-      this.styles = [];
+      this.name = "container";
     }
     render(target) {
-      computeDimensions(this.parent);
-      this.updateDimensionsBlindly();
       let element = document.createElement("div");
-      for (let i of this.children) {
-        i.render(element);
-      }
-      this.htmlNode = element;
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.onMountQueue) {
-        i();
-      }
-      this.onMountQueue = [];
+      renderBasics(this, element);
       target.appendChild(element);
-    }
-    rerender() {
-      computeDimensions(this.parent);
-      this.htmlNode.style.cssText = computeStyles(this.styles);
-      this.updateDimensionsBlindly();
-      addStyleGroupStylesToDOM(this.styleGroups);
-      for (let i of this.children) {
-        if (i.htmlNode || i.textNode) {
-          i.rerender();
-        } else {
-          i.render(this.htmlNode);
-        }
-      }
     }
   };
 
@@ -606,6 +568,11 @@
 
   // main.ts
   var c = new container([]);
+  var styl = new styleGroup([
+    [".f", `
+        background-color: pink;
+    `]
+  ], "f");
   function demoButton() {
     return new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
       let d = self.children[0];
@@ -616,8 +583,8 @@
         new button([new appFrwkTextNode("Hello Im a 2nd new child")])
       ]);
       c.applyStyle(["color: red;"]);
-      c.applyLastChange();
-    }).setHeight(shared(1)).applyStyle(["outline: none;"]);
+      c.lightRerender();
+    }).setHeight(shared(1)).applyStyle(["outline: none;"]).addToStyleGroup(styl);
   }
   var app = new appFrwkNode([
     verticalResizer([

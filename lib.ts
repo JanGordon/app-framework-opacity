@@ -56,6 +56,38 @@ export function percentHeight(percent: number): (self: appFrwkNode)=>lengthConfi
 }
 
 
+export function rerenderBasics(node: appFrwkNode) {
+    node.changes = []
+    computeDimensions(node)
+    node.htmlNode.style.cssText = computeStyles(node.styles)
+    node.updateDimensionsBlindly()
+    addStyleGroupStylesToDOM(node.styleGroups)
+    for (let i of node.children) {
+        if (i.htmlNode || (i as appFrwkTextNode).textNode) {
+            i.rerender()
+        } else {
+            i.render(node.htmlNode)
+        }
+    }
+}
+
+export function renderBasics(node: appFrwkNode, element: HTMLElement) {
+    node.updateDimensionsBlindly()
+    for (let i of node.children) {
+        i.render(element)
+    }
+    node.htmlNode = element
+    node.htmlNode.style.cssText = computeStyles(node.styles)
+    for (let i of node.styleGroups) {
+        node.htmlNode.classList.add(i.className)
+    }
+    addStyleGroupStylesToDOM(node.styleGroups)
+    for (let i of node.onMountQueue) {
+        i()
+    }
+    node.onMountQueue = []
+}
+
 export class appFrwkNode {
     htmlNode: HTMLElement
     onMountQueue: (()=>void)[] = []
@@ -104,6 +136,7 @@ export class appFrwkNode {
     addToStyleGroup(group: styleGroup) {
         this.changes.push(()=>{
             this.htmlNode.classList.add(group.className)
+            addStyleGroupStylesToDOM([group])
         })
         this.styleGroups.push(group)
         group.members.push(this)
@@ -148,20 +181,11 @@ export class appFrwkNode {
 
 
     render(target: HTMLElement) {
-        this.updateDimensionsBlindly()
         let element = document.createElement("div")
-        for (let i of this.children) {
-            i.render(element)
-        }
-        this.htmlNode = element
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-        addStyleGroupStylesToDOM(this.styleGroups)
-        for (let i of this.onMountQueue) {
-            i()
-        }
-        this.onMountQueue = []
+        renderBasics(this, element)
         target.appendChild(element)
     }
+    
     renderNewChildren(children: frwkNode[]) {
         this.addChildren(children)
         computeDimensions(this)
@@ -172,17 +196,7 @@ export class appFrwkNode {
         }
     }
     rerender() {
-        computeDimensions(this)
-        this.htmlNode.style.cssText = computeStyles(this.styles)
-        this.updateDimensionsBlindly()
-        addStyleGroupStylesToDOM(this.styleGroups)
-        for (let i of this.children) {
-            if (i.htmlNode || (i as appFrwkTextNode).textNode) {
-                i.rerender()
-            } else {
-                i.render(this.htmlNode)
-            }
-        }
+        rerenderBasics(this)
     }
     updateDimensions() {
         computeDimensions(this)
