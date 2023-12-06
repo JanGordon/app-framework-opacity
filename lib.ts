@@ -239,6 +239,12 @@ export class appFrwkNode {
             i.lightRerender()
         }
     }
+    applyLastChange() {
+        if (this.changes.length > 0) {
+            this.changes[this.changes.length-1]()
+        }
+        this.changes.pop()
+    }
 }
 
 
