@@ -63,20 +63,19 @@ export class appFrwkNode {
     styles: string[][] = []
     styleGroups: styleGroup[] = []
     flag = new Map<string, any>([])
+
+    changes: (()=>void)[] = []
     setFlag(key: string, val: any) {
         this.flag.set(key, val)
         return this
     }
 
     addClass(className: string) {
-        if (this.htmlNode) {
+        
+        this.changes.push(()=>{
             this.htmlNode.classList.add(className)
-        } else {
-            this.onMountQueue.push(()=>{
-                console.log("hello im mounted", this.htmlNode)
-                this.htmlNode.classList.add(className)
-            })
-        }
+        })
+        
         return this
     }
     hasClass(className: string) {
@@ -86,35 +85,26 @@ export class appFrwkNode {
         return false
     }
     toggleClass(className: string) {
-        if (this.htmlNode) {
+        this.changes.push(()=>{
             this.htmlNode.classList.toggle(className)
-        } else {
-            this.onMountQueue.push(()=>{
-                this.htmlNode.classList.toggle(className)
-            })
-        }
+        })
     }
     removeClass(className: string) {
-        if (this.htmlNode) {
+        this.changes.push(()=>{
             this.htmlNode.classList.remove(className)
-        } else {
-            this.onMountQueue.push(()=>{
-                this.htmlNode.classList.remove(className)
-            })
-        }
+        })
     }
     applyStyle(styles: string[]) {
         this.styles.push(styles)
+        this.changes.push(()=>{
+            this.htmlNode.style.cssText += computeStyles([styles])
+        })
         return this
     }
     addToStyleGroup(group: styleGroup) {
-        if (this.htmlNode) {
+        this.changes.push(()=>{
             this.htmlNode.classList.add(group.className)
-        } else {
-            this.onMountQueue.push(()=>{
-                this.htmlNode.classList.add(group.className)
-            })
-        }
+        })
         this.styleGroups.push(group)
         group.members.push(this)
         return this
@@ -140,11 +130,17 @@ export class appFrwkNode {
         for (let i of children) {
             i.parent = this
             this.children.push(i)
+            this.changes.push(()=>{
+                i.render(this.htmlNode)
+            })
         }
     }
 
     removeChild(child: frwkNode) {
         this.children.splice(this.children.indexOf(child))
+        this.changes.push(()=>{
+            this.htmlNode.removeChild(child.htmlNode)
+        })
         // It could be worth adding a rerender queue for optomisation
     }
 
@@ -232,6 +228,17 @@ export class appFrwkNode {
         return this
     }
     getHeight() {return this.height}
+
+
+    lightRerender() {
+        for (let i of this.changes) {
+            i()
+        }
+        this.changes = []
+        for (let i of this.children) {
+            i.lightRerender()
+        }
+    }
 }
 
 
