@@ -58,13 +58,11 @@ export function percentHeight(percent: number): (self: appFrwkNode)=>lengthConfi
 
 export function rerenderBasics(node: appFrwkNode) {
     node.changes = []
-    computeDimensions(node)
     node.htmlNode.style.cssText = computeStyles(node.styles)
-    node.updateDimensionsBlindly()
+    node.updateDimensions()
     node.htmlNode.className = node.classes.join(" ")
     
     for (let i of node.styleGroups) {
-        console.log("adding class", i.className)
         node.htmlNode.classList.add(i.className)
     }
     addStyleGroupStylesToDOM(node.styleGroups)
@@ -88,7 +86,6 @@ export function renderBasics(node: appFrwkNode, element: HTMLElement) {
     node.htmlNode.className = node.classes.join(" ")
     
     for (let i of node.styleGroups) {
-        console.log("adding class", i.className)
         node.htmlNode.classList.add(i.className)
     }
     
@@ -217,7 +214,7 @@ export class appFrwkNode {
     
     renderNewChildren(children: frwkNode[]) {
         this.addChildren(children)
-        computeDimensions(this)
+        computeDimensions(this, true)
         if (this.htmlNode) {
             for (let i of children) {
                 i.render(this.htmlNode)
@@ -228,11 +225,9 @@ export class appFrwkNode {
         rerenderBasics(this)
     }
     updateDimensions() {
-        computeDimensions(this)
+        computeDimensions(this, true)
         this.updateDimensionsBlindly()
-        for (let i of this.children) {
-            i.updateDimensions()
-        }
+        
     }
     updateDimensionsBlindly() {
         const d = ()=>{
@@ -241,17 +236,15 @@ export class appFrwkNode {
             }
             if (this.height > 0) {
                 this.htmlNode.style.height = this.height + "px"
-                console.log("heihgt", this.htmlNode)
             }
         }
         if (this.htmlNode) {
             d()
-            console.log("updating style dimensions", this.height)
         } else {
             this.onMountQueue.push(d)
         }
         for (let i of this.children) {
-            i.updateDimensions()
+            i.updateDimensionsBlindly()
         }
         
     }
@@ -274,13 +267,31 @@ export class appFrwkNode {
 
 
     lightRerender() {
-        for (let i of this.changes) {
-            i()
+        this.updateDimensions()
+        if (this.htmlNode) {
+            for (let i of this.changes) {
+                i()
+            }
+        } else {
+            console.error("I haven't been rendered yet")
         }
-        this.changes = []
         for (let i of this.children) {
-            i.lightRerender()
+            if (i.nodeType == nodeType.text) {
+                if (!(i as appFrwkTextNode).textNode) {
+                    i.render(this.htmlNode)
+                }
+            } else {
+                if (i.htmlNode) {
+                    i.lightRerender()
+                } else {
+                    i.render(this.htmlNode)
+                }
+            }   
         }
+        
+        
+        this.changes = []
+        
     }
     applyLastChange() {
         if (this.changes.length > 0) {
@@ -303,9 +314,8 @@ export function computeStyles(styles: string[][]) {
 
 
 
-export function computeDimensions(rootNode: appFrwkNode) {
+export function computeDimensions(rootNode: appFrwkNode, recursive?: boolean) {
     // computes dimensions of all descendants of rootNode (not rootNode itself)
-
     let widthSharers :appFrwkNode[] = []
     let totalWidthSharersLength = 0
     let totalWidthNotSharersLength = 0
@@ -346,8 +356,8 @@ export function computeDimensions(rootNode: appFrwkNode) {
             
             if (isDimensionsSharer) {
                 allDimensionSharers.push(i)
-            } else {
-                computeDimensions(i)
+            } else if (recursive) {
+                computeDimensions(i, true)
             }
         }
         
@@ -363,10 +373,12 @@ export function computeDimensions(rootNode: appFrwkNode) {
         // console.trace(i)
         i.height = i.heightExpression(i).lengthOfShared*heightOfStandardSharedHeight
     }
-
-    for (let i of allDimensionSharers) {
-        computeDimensions(i)
+    if (recursive) {
+        for (let i of allDimensionSharers) {
+            computeDimensions(i, true)
+        }
     }
+    
 }
 
 export class appFrwkTextNode extends appFrwkNode {
@@ -376,6 +388,7 @@ export class appFrwkTextNode extends appFrwkNode {
     }
     textNode: Text
     render(target: HTMLElement): void {
+        console.trace("Im renedring some text", this.content)
         let n = document.createTextNode(this.content)
         this.textNode = n
         target.appendChild(n)
@@ -432,7 +445,6 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
 
     node.width = document.body.clientWidth
     node.height = document.body.clientHeight
-    console.log(node.height)
     const onResize = ()=>{
 
         resizeElement.style.display = "none"
@@ -449,7 +461,8 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
         
         
     })
-    computeDimensions(node)
+    
+    node.updateDimensions()
     target.style.overflow = "hidden"
     node.render(target)
 }
