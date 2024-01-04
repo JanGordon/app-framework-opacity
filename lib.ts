@@ -93,6 +93,9 @@ export function renderBasics(node: appFrwkNode, element: HTMLElement) {
     for (let i of node.onMountQueue) {
         i()
     }
+
+    console.log("i rendered it, here are the changes that were scheduled", node.changes)
+    node.changes = []
     node.onMountQueue = []
 }
 
@@ -190,6 +193,7 @@ export class appFrwkNode {
             i.parent = this
             this.children.push(i)
             this.changes.push(()=>{
+                console.log("rendered new node", i)
                 i.render(this.htmlNode)
             })
         }
@@ -272,25 +276,28 @@ export class appFrwkNode {
             for (let i of this.changes) {
                 i()
             }
+            this.changes = []
+
         } else {
             console.error("I haven't been rendered yet")
         }
         for (let i of this.children) {
             if (i.nodeType == nodeType.text) {
                 if (!(i as appFrwkTextNode).textNode) {
-                    i.render(this.htmlNode)
+                    i.render(this.htmlNode);
+                    (i as appFrwkTextNode).changes = []
                 }
             } else {
                 if (i.htmlNode) {
                     i.lightRerender()
                 } else {
                     i.render(this.htmlNode)
+                    i.changes = []
                 }
             }   
         }
         
         
-        this.changes = []
         
     }
     applyLastChange() {
@@ -388,7 +395,6 @@ export class appFrwkTextNode extends appFrwkNode {
     }
     textNode: Text
     render(target: HTMLElement): void {
-        console.trace("Im renedring some text", this.content)
         let n = document.createTextNode(this.content)
         this.textNode = n
         target.appendChild(n)

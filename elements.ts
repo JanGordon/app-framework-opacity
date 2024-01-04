@@ -183,3 +183,22 @@ export class textInput extends appFrwkNode {
         target.appendChild(element)
     }
 }
+
+export class textArea extends appFrwkNode {
+    name = "textArea"
+    render(target: HTMLElement): void {
+        let element = document.createElement("textarea")
+        renderBasics(this, element)
+        target.appendChild(element)
+    }
+}
+
+// export class canvas extends appFrwkNode {
+//     name = "canvas"
+//     render(target: HTMLElement): void {
+//         let element = document.createElement("canvas")
+//         element.getContext("")
+//         renderBasics(this, element)
+//         target.appendChild(element)
+//     }
+// }
