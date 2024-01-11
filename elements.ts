@@ -1,4 +1,4 @@
-import { addStyleGroupStylesToDOM, appFrwkNode, appFrwkTextNode, computeDimensions, computeStyles, renderBasics, rerenderBasics } from "./lib"
+import { appFrwkNode, renderBasics } from "./lib"
 
 export class button extends appFrwkNode {
     name = "button"
@@ -21,42 +21,31 @@ export class container extends appFrwkNode {
 }
 export class image extends appFrwkNode {
     name = "img"
-    src: string
     setSrc(src: string) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLImageElement).src = src
         })
-        this.src = src
         return this
     }
     render(target: HTMLElement): void {
         let element = document.createElement("img")
-        element.src = this.src
         renderBasics(this, element)
         target.appendChild(element)
-    }
-    rerender() {
-        (this.htmlNode as HTMLImageElement).src = this.src
-        rerenderBasics(this)
     }
 }
 
 export class video extends appFrwkNode {
     name = "video"
-    src: string
     setSrc(src: string) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLVideoElement).src = src
         })
-        this.src = src
         return this
     }
-    controls: boolean
     setControls(on: boolean) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLVideoElement).controls = on
         })
-        this.controls = on
         return this
     }
     autoplay: boolean
@@ -64,86 +53,55 @@ export class video extends appFrwkNode {
         this.changes.push(()=>{
             (this.htmlNode as HTMLVideoElement).autoplay = on
         })
-        this.autoplay = on
         return this
     }
     render(target: HTMLElement): void {
         let element = document.createElement("video")
-        element.controls = this.controls
-        element.autoplay = this.autoplay
-        element.src = this.src
         renderBasics(this, element)
         target.appendChild(element)
-    }
-    rerender() {
-        (this.htmlNode as HTMLVideoElement).src = this.src;
-        (this.htmlNode as HTMLVideoElement).controls = this.controls;
-        (this.htmlNode as HTMLVideoElement).autoplay = this.autoplay
-        rerenderBasics(this)
     }
 }
 
 export class audio extends appFrwkNode {
     name = "audio"
-    src: string
     setSrc(src: string) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLAudioElement).src = src
         })
-        this.src = src
         return this
     }
-    controls: boolean
+
     setControls(on: boolean) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLAudioElement).controls = on
         })
-        this.controls = on
         return this
     }
-    autoplay: boolean
     setAutoplay(on: boolean) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLAudioElement).autoplay = on
         })
-        this.autoplay = on
         return this
     }
     render(target: HTMLElement): void {
         let element = document.createElement("audio")
-        element.controls = this.controls
-        element.autoplay = this.autoplay
-        element.src = this.src
         renderBasics(this, element)
         target.appendChild(element)
-    }
-    rerender() {
-        (this.htmlNode as HTMLVideoElement).src = this.src;
-        (this.htmlNode as HTMLVideoElement).controls = this.controls;
-        (this.htmlNode as HTMLVideoElement).autoplay = this.autoplay
-        rerenderBasics(this)
     }
 }
 
 export class link extends appFrwkNode {
     name = "link"
-    target = "/"
     setTarget(link: string) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLAnchorElement).href = link
         })
-        this.target = link
         return this
     }
     render(target: HTMLElement): void {
         let element = document.createElement("a") as HTMLAnchorElement
-        element.href = this.target
         renderBasics(this, element)
         target.appendChild(element)
-    }
-    rerender() {
-        (this.htmlNode as HTMLAnchorElement).href = this.target
-        rerenderBasics(this)
     }
 }
 
@@ -179,22 +137,13 @@ export class textInput extends appFrwkNode {
     render(target: HTMLElement): void {
         let element = document.createElement("input")
         element.type = "text"
-        element.value = this._value
         renderBasics(this, element)
         target.appendChild(element)
     }
-    _value: string = ""
     setValue(val: string) {
         this.changes.push(()=>{
             (this.htmlNode as HTMLInputElement).value = val
         })
-        this._value = val
         return this
     }
-    rerender() {
-        (this.htmlNode as HTMLInputElement).value = this._value
-        rerenderBasics(this)
-    }
 }
-
-//TODO: try and make render just use the changes and not need separate things

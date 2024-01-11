@@ -1,5 +1,5 @@
 (() => {
-  // ../node_modules/uuid/dist/esm-browser/rng.js
+  // node_modules/uuid/dist/esm-browser/rng.js
   var getRandomValues;
   var rnds8 = new Uint8Array(16);
   function rng() {
@@ -12,7 +12,7 @@
     return getRandomValues(rnds8);
   }
 
-  // ../node_modules/uuid/dist/esm-browser/stringify.js
+  // node_modules/uuid/dist/esm-browser/stringify.js
   var byteToHex = [];
   for (let i = 0; i < 256; ++i) {
     byteToHex.push((i + 256).toString(16).slice(1));
@@ -21,13 +21,13 @@
     return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
   }
 
-  // ../node_modules/uuid/dist/esm-browser/native.js
+  // node_modules/uuid/dist/esm-browser/native.js
   var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
   var native_default = {
     randomUUID
   };
 
-  // ../node_modules/uuid/dist/esm-browser/v4.js
+  // node_modules/uuid/dist/esm-browser/v4.js
   function v4(options, buf, offset) {
     if (native_default.randomUUID && !buf && !options) {
       return native_default.randomUUID();
@@ -47,7 +47,7 @@
   }
   var v4_default = v4;
 
-  // ../lib.ts
+  // lib.ts
   var styleGroup = class {
     constructor(styles, className) {
       this.members = [];
@@ -70,31 +70,14 @@
       return s;
     }
   };
-  function shared(multiplier) {
-    return (self) => {
-      return { length: 0, lengthOfShared: multiplier };
-    };
-  }
-  function px(pixels) {
-    return (self) => {
-      return { length: pixels, lengthOfShared: 0 };
-    };
-  }
-  function percentWidth(percent) {
-    return (self) => {
-      return { length: self.parent.width * percent, lengthOfShared: 0 };
-    };
-  }
-  function percentHeight(percent) {
-    return (self) => {
-      return { length: self.parent.height * percent, lengthOfShared: 0 };
-    };
-  }
   function rerenderBasics(node) {
     node.changes = [];
-    computeDimensions(node);
     node.htmlNode.style.cssText = computeStyles(node.styles);
-    node.updateDimensionsBlindly();
+    node.updateDimensions();
+    node.htmlNode.className = node.classes.join(" ");
+    for (let i of node.styleGroups) {
+      node.htmlNode.classList.add(i.className);
+    }
     addStyleGroupStylesToDOM(node.styleGroups);
     for (let i of node.children) {
       if (i.htmlNode || i.textNode) {
@@ -106,15 +89,12 @@
   }
   function renderBasics(node, element) {
     node.updateDimensionsBlindly();
-    for (let i of node.children) {
-      i.render(element);
-    }
     node.htmlNode = element;
     node.htmlNode.style.cssText = computeStyles(node.styles);
-    for (let i of node.styleGroups) {
-      node.htmlNode.classList.add(i.className);
+    for (let i of node.changes) {
+      i();
     }
-    addStyleGroupStylesToDOM(node.styleGroups);
+    node.changes = [];
     for (let i of node.onMountQueue) {
       i();
     }
@@ -127,6 +107,7 @@
       this.styles = [];
       this.styleGroups = [];
       this.flag = /* @__PURE__ */ new Map([]);
+      this.classes = [];
       this.changes = [];
       this.children = [];
       this.width = -1;
@@ -134,6 +115,9 @@
       this.children = children;
       for (let i of children) {
         i.parent = this;
+        this.changes.push(() => {
+          i.render(this.htmlNode);
+        });
       }
     }
     setFlag(key, val) {
@@ -144,6 +128,10 @@
       this.changes.push(() => {
         this.htmlNode.classList.add(className);
       });
+      let index = this.classes.indexOf(className);
+      if (index == -1) {
+        this.classes.push(className);
+      }
       return this;
     }
     hasClass(className) {
@@ -156,11 +144,23 @@
       this.changes.push(() => {
         this.htmlNode.classList.toggle(className);
       });
+      let index = this.classes.indexOf(className);
+      if (index == -1) {
+        this.classes.push(className);
+      } else {
+        this.classes.splice(index);
+      }
+      return this;
     }
     removeClass(className) {
       this.changes.push(() => {
         this.htmlNode.classList.remove(className);
       });
+      let index = this.classes.indexOf(className);
+      if (index != -1) {
+        this.classes.splice(index);
+      }
+      return this;
     }
     applyStyle(styles) {
       this.styles.push(styles);
@@ -210,7 +210,7 @@
     }
     renderNewChildren(children) {
       this.addChildren(children);
-      computeDimensions(this);
+      computeDimensions(this, true);
       if (this.htmlNode) {
         for (let i of children) {
           i.render(this.htmlNode);
@@ -221,11 +221,8 @@
       rerenderBasics(this);
     }
     updateDimensions() {
-      computeDimensions(this);
+      computeDimensions(this, true);
       this.updateDimensionsBlindly();
-      for (let i of this.children) {
-        i.updateDimensions();
-      }
     }
     updateDimensionsBlindly() {
       const d = () => {
@@ -234,17 +231,15 @@
         }
         if (this.height > 0) {
           this.htmlNode.style.height = this.height + "px";
-          console.log("heihgt", this.htmlNode);
         }
       };
       if (this.htmlNode) {
         d();
-        console.log("updating style dimensions", this.height);
       } else {
         this.onMountQueue.push(d);
       }
       for (let i of this.children) {
-        i.updateDimensions();
+        i.updateDimensionsBlindly();
       }
     }
     setWidth(expression, test) {
@@ -264,12 +259,29 @@
       return this.height;
     }
     lightRerender() {
-      for (let i of this.changes) {
-        i();
+      this.updateDimensions();
+      if (this.htmlNode) {
+        for (let i of this.changes) {
+          i();
+        }
+        this.changes = [];
+      } else {
+        console.error("I haven't been rendered yet");
       }
-      this.changes = [];
       for (let i of this.children) {
-        i.lightRerender();
+        if (i.nodeType == 1 /* text */) {
+          if (!i.textNode) {
+            i.render(this.htmlNode);
+            i.changes = [];
+          }
+        } else {
+          if (i.htmlNode) {
+            i.lightRerender();
+          } else {
+            i.render(this.htmlNode);
+            i.changes = [];
+          }
+        }
       }
     }
     applyLastChange() {
@@ -288,7 +300,7 @@
     }
     return styleString;
   }
-  function computeDimensions(rootNode) {
+  function computeDimensions(rootNode, recursive) {
     let widthSharers = [];
     let totalWidthSharersLength = 0;
     let totalWidthNotSharersLength = 0;
@@ -324,8 +336,8 @@
         }
         if (isDimensionsSharer) {
           allDimensionSharers.push(i);
-        } else {
-          computeDimensions(i);
+        } else if (recursive) {
+          computeDimensions(i, true);
         }
       }
     }
@@ -337,25 +349,12 @@
     for (let i of heightSharers) {
       i.height = i.heightExpression(i).lengthOfShared * heightOfStandardSharedHeight;
     }
-    for (let i of allDimensionSharers) {
-      computeDimensions(i);
+    if (recursive) {
+      for (let i of allDimensionSharers) {
+        computeDimensions(i, true);
+      }
     }
   }
-  var appFrwkTextNode = class extends appFrwkNode {
-    constructor(content) {
-      super([]);
-      this.nodeType = 1 /* text */;
-      this.content = content;
-    }
-    render(target) {
-      let n = document.createTextNode(this.content);
-      this.textNode = n;
-      target.appendChild(n);
-    }
-    rerender() {
-      this.textNode.data = this.content;
-    }
-  };
   var allStyleGroups = [];
   function addStyleGroupStylesToDOM(styleGroups) {
     for (let s of styleGroups) {
@@ -397,7 +396,6 @@
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"]);
     node.width = document.body.clientWidth;
     node.height = document.body.clientHeight;
-    console.log(node.height);
     const onResize = () => {
       resizeElement.style.display = "none";
       node.width = document.body.clientWidth;
@@ -410,24 +408,12 @@
       clearTimeout(doit);
       doit = setTimeout(onResize, 100);
     });
-    computeDimensions(node);
+    node.updateDimensions();
     target.style.overflow = "hidden";
     node.render(target);
   }
 
-  // ../elements.ts
-  var button = class extends appFrwkNode {
-    constructor() {
-      super(...arguments);
-      this.name = "button";
-      this.styles = [];
-    }
-    render(target) {
-      let element = document.createElement("button");
-      renderBasics(this, element);
-      target.appendChild(element);
-    }
-  };
+  // elements.ts
   var container = class extends appFrwkNode {
     constructor() {
       super(...arguments);
@@ -439,163 +425,36 @@
       target.appendChild(element);
     }
   };
-
-  // nav.ts
-  function navbar() {
-    return new container([]).setHeight(px(20)).setWidth(percentWidth(1));
-  }
-
-  // resizers.ts
-  var resizerThickness = px(1);
-  var resizerHitBox = px(15);
-  var resizerStyles = new styleGroup([
-    [".resizer-styles", `
-        outline: none;
-        background-color: black;
-    `]
-  ], "resizer-styles");
-  function horizontalResizer(children) {
-    const containerDiv = new container([]).setWidth(percentWidth(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: row;"]);
-    let resizer = () => {
-      var pressed = false;
-      var pressedOffsetX = 0;
-      document.addEventListener("pointerup", () => {
-        pressed = false;
-      });
-      let r = new button([
-        new container([]).applyStyle(["position: absolute;", "z-index: 2;", "background-color: transparent;", "top: 0;", "left: 50%;", "transform: translateX(-50%);"]).setHeight(percentHeight(1)).setWidth(resizerHitBox).addEventListener("pointerdown", (self, e) => {
-          pressed = true;
-          const c2 = containerDiv.htmlNode.getBoundingClientRect();
-          const r2 = self.htmlNode.getBoundingClientRect();
-          pressedOffsetX = e.clientX - c2.left - r2.left;
-        })
-      ]).applyStyle(["position: relative;", "overflow: visible;"]);
-      document.addEventListener("pointermove", (e) => {
-        if (pressed) {
-          const indexOfSelf = containerDiv.children.indexOf(r);
-          const left = containerDiv.children[indexOfSelf - 1];
-          const right = containerDiv.children[indexOfSelf + 1];
-          const targetWidth = left.width + right.width;
-          var totalWidthOfAllPartsLeft = 0;
-          for (let i = 0; i < indexOfSelf - 1; i++) {
-            totalWidthOfAllPartsLeft += containerDiv.children[i].width;
-          }
-          const newWidthOfLeft = e.clientX - pressedOffsetX - totalWidthOfAllPartsLeft;
-          const newWidthOfRight = targetWidth - newWidthOfLeft + r.width;
-          const leftToRightWidthRatio = newWidthOfLeft / newWidthOfRight;
-          const currentShareOfLeftAndRight = left.widthExpression(left).lengthOfShared + right.widthExpression(right).lengthOfShared;
-          var newRightSharedRatio = currentShareOfLeftAndRight / (leftToRightWidthRatio + 1);
-          var newLeftSharedRatio = currentShareOfLeftAndRight - newRightSharedRatio;
-          console.log(newWidthOfLeft, newWidthOfRight);
-          left.setWidth(shared(newLeftSharedRatio));
-          right.setWidth(shared(newRightSharedRatio));
-          containerDiv.updateDimensions();
-        }
-      });
-      return r.addToStyleGroup(resizerStyles).setHeight(percentHeight(1)).setWidth(resizerThickness);
-    };
-    for (let index = 0; index < children.length; index++) {
-      children[index].setHeight(percentHeight(1));
-      let resizable = !children[index].flag.get("static");
-      if (index + 1 < children.length) {
-        if (resizable) {
-          containerDiv.addChildren([children[index], resizer()]);
-        } else {
-          let dummyResizer = new button([]).addToStyleGroup(resizerStyles).setHeight(percentHeight(1)).setWidth(resizerThickness);
-          containerDiv.addChildren([children[index], dummyResizer]);
-        }
-      } else {
-        containerDiv.addChildren([children[index]]);
-      }
+  var textInput = class extends appFrwkNode {
+    constructor() {
+      super(...arguments);
+      this.name = "textInput";
     }
-    return containerDiv;
-  }
-  function verticalResizer(children) {
-    const containerDiv = new container([]).setHeight(percentHeight(1)).setWidth(percentWidth(1)).applyStyle(["display: flex;", "flex-direction: column;"]);
-    let resizer = () => {
-      var pressed = false;
-      var pressedOffsetY = 0;
-      document.addEventListener("pointerup", () => {
-        pressed = false;
-      });
-      let r = new button([
-        new container([]).applyStyle(["position: absolute;", "z-index: 2;", "background-color: transparent;", "top: 50%;", "left: 0;", "transform: translateY(-50%);"]).setWidth(percentWidth(1)).setHeight(resizerHitBox).addEventListener("pointerdown", (self, e) => {
-          pressed = true;
-          const c2 = containerDiv.htmlNode.getBoundingClientRect();
-          const r2 = self.htmlNode.getBoundingClientRect();
-          pressedOffsetY = e.clientY - c2.top - r2.top;
-        })
-      ]).applyStyle(["position: relative;", "overflow: visible;"]);
-      document.addEventListener("pointermove", (e) => {
-        if (pressed) {
-          const indexOfSelf = containerDiv.children.indexOf(r);
-          const above = containerDiv.children[indexOfSelf - 1];
-          const below = containerDiv.children[indexOfSelf + 1];
-          const targetHeight = above.height + below.height;
-          var totalHeightOfAllPartsAbove = 0;
-          for (let i = 0; i < indexOfSelf - 1; i++) {
-            totalHeightOfAllPartsAbove += containerDiv.children[i].height;
-          }
-          const newHeightOfAbove = e.clientY - pressedOffsetY - totalHeightOfAllPartsAbove;
-          const newHeightOfBelow = targetHeight - newHeightOfAbove + r.height;
-          const aboveToBelowHeightRatio = newHeightOfAbove / newHeightOfBelow;
-          const currentShareOfAboveAndBelow = above.heightExpression(above).lengthOfShared + below.heightExpression(below).lengthOfShared;
-          var newBelowSharedRatio = currentShareOfAboveAndBelow / (aboveToBelowHeightRatio + 1);
-          var newAboveSharedRatio = currentShareOfAboveAndBelow - newBelowSharedRatio;
-          above.setHeight(shared(newAboveSharedRatio));
-          below.setHeight(shared(newBelowSharedRatio));
-          containerDiv.updateDimensions();
-        }
-      });
-      return r.addToStyleGroup(resizerStyles).setWidth(percentWidth(1)).setHeight(resizerThickness);
-    };
-    for (let index = 0; index < children.length; index++) {
-      children[index].setWidth(percentWidth(1));
-      let resizable = !children[index].flag.get("static");
-      if (index + 1 < children.length) {
-        if (resizable) {
-          containerDiv.addChildren([children[index], resizer()]);
-        } else {
-          let dummyResizer = new button([]).addToStyleGroup(resizerStyles).setWidth(percentWidth(1)).setHeight(resizerThickness);
-          containerDiv.addChildren([children[index], dummyResizer]);
-        }
-      } else {
-        containerDiv.addChildren([children[index]]);
-      }
+    render(target) {
+      let element = document.createElement("input");
+      element.type = "text";
+      renderBasics(this, element);
+      target.appendChild(element);
     }
-    return containerDiv;
-  }
+    setValue(val) {
+      this.changes.push(() => {
+        this.htmlNode.value = val;
+      });
+      return this;
+    }
+  };
 
-  // main.ts
+  // examples/main.ts
   var c = new container([]);
   var styl = new styleGroup([
     [".f", `
         background-color: pink;
     `]
   ], "f");
-  function demoButton() {
-    return new button([new appFrwkTextNode("press me for rewards")]).addEventListener("click", (self) => {
-      let d = self.children[0];
-      d.content = "wow well done";
-      d.rerender();
-      c.addChildren([
-        new button([new appFrwkTextNode("Hello Im a new child")]),
-        new button([new appFrwkTextNode("Hello Im a 2nd new child")])
-      ]);
-      c.applyStyle(["color: red;"]);
-      c.lightRerender();
-    }).setHeight(shared(1)).applyStyle(["outline: none;"]).addToStyleGroup(styl);
-  }
   var app = new appFrwkNode([
-    verticalResizer([
-      navbar().setFlag("static", true),
-      demoButton().setHeight(shared(1)),
-      demoButton().setHeight(shared(1)),
-      horizontalResizer([
-        demoButton().setWidth(shared(1)),
-        c.setWidth(shared(1))
-      ]).setHeight(shared(1))
-    ])
+    new textInput([]).addEventListener("click", (self) => {
+      self.setValue("ey up there").applyLastChange();
+    })
   ]);
   renderApp(app, document.body);
 })();

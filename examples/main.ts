@@ -1,4 +1,4 @@
-import { button, container } from "../elements";
+import { button, container, textInput } from "../elements";
 import { appFrwkNode, appFrwkTextNode, percentHeight, percentWidth, px, renderApp, shared, styleGroup } from "../lib";
 import { navbar } from "./nav";
 import { verticalResizer, horizontalResizer } from "./resizers";
@@ -27,16 +27,19 @@ function demoButton() {
 
 
 let app = new appFrwkNode([
-    verticalResizer([
-        navbar().setFlag("static", true),
-        demoButton().setHeight(shared(1)),
-        demoButton().setHeight(shared(1)),
-        horizontalResizer([
-            demoButton().setWidth(shared(1)),
-            c.setWidth(shared(1))
-        ]).setHeight(shared(1))
-    ]),
+    // verticalResizer([
+    //     navbar().setFlag("static", true),
+    //     demoButton().setHeight(shared(1)),
+    //     demoButton().setHeight(shared(1)),
+    //     horizontalResizer([
+    //         demoButton().setWidth(shared(1)),
+    //         c.setWidth(shared(1))
+    //     ]).setHeight(shared(1))
+    // ]),
     
+    new textInput([]).addEventListener("click", (self)=>{
+        self.setValue("ey up there").applyLastChange()
+    })
     
 ])
 

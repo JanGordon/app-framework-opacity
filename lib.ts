@@ -77,25 +77,17 @@ export function rerenderBasics(node: appFrwkNode) {
 
 export function renderBasics(node: appFrwkNode, element: HTMLElement) {
     node.updateDimensionsBlindly()
-    for (let i of node.children) {
-        i.render(element)
-    }
+    
     node.htmlNode = element
     node.htmlNode.style.cssText = computeStyles(node.styles)
-    
-    node.htmlNode.className = node.classes.join(" ")
-    
-    for (let i of node.styleGroups) {
-        node.htmlNode.classList.add(i.className)
+    for (let i of node.changes) {
+        i()
     }
-    
-    addStyleGroupStylesToDOM(node.styleGroups)
+    node.changes = []
+
     for (let i of node.onMountQueue) {
         i()
     }
-
-    console.log("i rendered it, here are the changes that were scheduled", node.changes)
-    node.changes = []
     node.onMountQueue = []
 }
 
@@ -175,6 +167,9 @@ export class appFrwkNode {
         this.children = children
         for (let i of children) {
             i.parent = this
+            this.changes.push(()=>{
+                i.render(this.htmlNode)
+            })
         }
     }
     addEventListener(event: string, callback: (self: this, event: Event)=>void) {
@@ -193,7 +188,6 @@ export class appFrwkNode {
             i.parent = this
             this.children.push(i)
             this.changes.push(()=>{
-                console.log("rendered new node", i)
                 i.render(this.htmlNode)
             })
         }
@@ -369,7 +363,6 @@ export function computeDimensions(rootNode: appFrwkNode, recursive?: boolean) {
         }
         
     }
-    // console.log(totalWidthNotSharersLength, totalWidthSharersLength)
     let widthOfStandardSharedWidth = (rootNode.width - totalWidthNotSharersLength) / totalWidthSharersLength
     for (let i of widthSharers) {
         i.width = i.widthExpression(i).lengthOfShared*widthOfStandardSharedWidth
@@ -377,7 +370,6 @@ export function computeDimensions(rootNode: appFrwkNode, recursive?: boolean) {
 
     let heightOfStandardSharedHeight = (rootNode.height - totalHeightNotSharersLength) / totalHeightSharersLength
     for (let i of heightSharers) {
-        // console.trace(i)
         i.height = i.heightExpression(i).lengthOfShared*heightOfStandardSharedHeight
     }
     if (recursive) {
