@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-type frwkNode = appFrwkNode | appFrwkTextNode
+export type frwkNode = appFrwkNode | appFrwkTextNode
 
 enum nodeType {
     basic,

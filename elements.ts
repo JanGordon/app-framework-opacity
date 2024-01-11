@@ -179,26 +179,22 @@ export class textInput extends appFrwkNode {
     render(target: HTMLElement): void {
         let element = document.createElement("input")
         element.type = "text"
+        element.value = this._value
         renderBasics(this, element)
         target.appendChild(element)
     }
-}
-
-export class textArea extends appFrwkNode {
-    name = "textArea"
-    render(target: HTMLElement): void {
-        let element = document.createElement("textarea")
-        renderBasics(this, element)
-        target.appendChild(element)
+    _value: string = ""
+    setValue(val: string) {
+        this.changes.push(()=>{
+            (this.htmlNode as HTMLInputElement).value = val
+        })
+        this._value = val
+        return this
+    }
+    rerender() {
+        (this.htmlNode as HTMLInputElement).value = this._value
+        rerenderBasics(this)
     }
 }
 
-// export class canvas extends appFrwkNode {
-//     name = "canvas"
-//     render(target: HTMLElement): void {
-//         let element = document.createElement("canvas")
-//         element.getContext("")
-//         renderBasics(this, element)
-//         target.appendChild(element)
-//     }
-// }
+//TODO: try and make render just use the changes and not need separate things
