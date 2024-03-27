@@ -27,6 +27,14 @@ export class canvas extends appFrwkNode {
         renderBasics(this, this.canvas)
         target.appendChild(this.canvas)
     }
+    getContext(contextId: "2d", options?: CanvasRenderingContext2DSettings): CanvasRenderingContext2D | null;
+    getContext(contextId: "bitmaprenderer", options?: ImageBitmapRenderingContextSettings): ImageBitmapRenderingContext | null;
+    getContext(contextId: "webgl", options?: WebGLContextAttributes): WebGLRenderingContext | null;
+    getContext(contextId: "webgl2", options?: WebGLContextAttributes): WebGL2RenderingContext | null;
+
+    getContext(contextId: string, options?: (CanvasRenderingContext2DSettings | ImageBitmapRenderingContextSettings | WebGLRenderingContext | WebGL2RenderingContext)) {
+        return this.canvas.getContext(contextId, options)
+    }
 }
 
 export class unorderedList extends appFrwkNode {
