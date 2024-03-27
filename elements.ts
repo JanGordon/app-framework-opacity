@@ -1,4 +1,4 @@
-import { appFrwkNode, renderBasics } from "./lib"
+import { appFrwkNode, frwkNode, renderBasics, rerenderBasics } from "./lib"
 
 export class button extends appFrwkNode {
     name = "button"
@@ -15,6 +15,42 @@ export class container extends appFrwkNode {
     name = "container"
     render(target: HTMLElement): void {
         let element = document.createElement("div")
+        renderBasics(this, element)
+        target.appendChild(element)
+    }
+}
+
+export class canvas extends appFrwkNode {
+    name = "canvas"
+    canvas = document.createElement("canvas")
+    render(target: HTMLElement): void {
+        renderBasics(this, this.canvas)
+        target.appendChild(this.canvas)
+    }
+}
+
+export class unorderedList extends appFrwkNode {
+    name = "unordered-list"
+    render(target: HTMLElement): void {
+        let element = document.createElement("ul")
+        renderBasics(this, element)
+        target.appendChild(element)
+    }
+}
+
+export class listItem extends appFrwkNode {
+    name = "list-item"
+    render(target: HTMLElement): void {
+        let element = document.createElement("li")
+        renderBasics(this, element)
+        target.appendChild(element)
+    }
+}
+
+export class orderedList extends appFrwkNode {
+    name = "ordered-list"
+    render(target: HTMLElement): void {
+        let element = document.createElement("ol")
         renderBasics(this, element)
         target.appendChild(element)
     }
