@@ -438,7 +438,7 @@ resizeElement.style.cssText = `
 `
 resizeElement.innerText = "Resizing"
 document.body.appendChild(resizeElement)
-export function renderApp(node: appFrwkNode, target: HTMLElement) {
+export function renderApp(node: appFrwkNode, target: HTMLElement, resizeListener?: ()=>void) {
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
 
     node.width = document.body.clientWidth
@@ -449,6 +449,9 @@ export function renderApp(node: appFrwkNode, target: HTMLElement) {
         node.width = document.body.clientWidth
         node.height = document.body.clientHeight
         node.updateDimensions()
+        if (resizeListener) {
+            resizeListener()
+        }
     }
     var doit;
 
