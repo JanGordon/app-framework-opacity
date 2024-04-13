@@ -422,23 +422,42 @@ export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
     }
 }
 
-const resizeElement = document.createElement("div")
-resizeElement.style.cssText = `
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 2;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: larger;
-    background-color: white;
-`
-resizeElement.innerText = "Resizing"
-document.body.appendChild(resizeElement)
+export function renderNode(node: appFrwkNode, target: HTMLElement) {
+    node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
+
+    node.width = target.clientWidth
+        node.height = target.clientHeight
+    const onResize = ()=>{
+        node.width = target.clientWidth
+        node.height = target.clientHeight
+        node.updateDimensions()
+    }
+
+    addEventListener("resize", onResize)
+    
+    node.updateDimensions()
+    target.style.overflow = "hidden"
+
+    node.render(target)
+}
+
 export function renderApp(node: appFrwkNode, target: HTMLElement, resizeListener?: ()=>void) {
+    const resizeElement = document.createElement("div")
+    resizeElement.style.cssText = `
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: larger;
+        background-color: white;
+    `
+    resizeElement.innerText = "Resizing"
+    document.body.appendChild(resizeElement)
     node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
 
     node.width = document.body.clientWidth

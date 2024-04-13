@@ -1,5 +1,5 @@
-import { button, container, textInput } from "../elements";
-import { appFrwkNode, appFrwkTextNode, percentHeight, percentWidth, px, renderApp, shared, styleGroup } from "../lib";
+import { button, container, textInput } from "../../elements";
+import { appFrwkNode, appFrwkTextNode, percentHeight, percentWidth, px, renderApp, shared, styleGroup } from "../../lib";
 import { navbar } from "./nav";
 import { verticalResizer, horizontalResizer } from "./resizers";
 

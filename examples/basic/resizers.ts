@@ -1,5 +1,5 @@
-import { container, button } from "../elements"
-import { appFrwkNode, percentHeight, percentWidth, px, shared, styleGroup } from "../lib"
+import { container, button } from "../../elements"
+import { appFrwkNode, percentHeight, percentWidth, px, shared, styleGroup } from "../../lib"
 
 
 const resizerThickness = px(1)
