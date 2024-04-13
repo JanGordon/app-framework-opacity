@@ -423,10 +423,10 @@ export function addStyleGroupStylesToDOM(styleGroups: styleGroup[]) {
 }
 
 export function renderNode(node: appFrwkNode, target: HTMLElement) {
-    node.applyStyle(["width: 100%;", "height: 100%; overflow: hidden;"])
+    node.applyStyle(["width: 100%;", "overflow: hidden;"])
 
     node.width = target.clientWidth
-        node.height = target.clientHeight
+    node.height = target.clientHeight
     const onResize = ()=>{
         node.width = target.clientWidth
         node.height = target.clientHeight
